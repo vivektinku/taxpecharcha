@@ -245,7 +245,6 @@
 </head>
 <body>
 
-<!-- Navigation -->
 <nav class="navbar">
     <div class="nav-inner">
         <a href="#" class="nav-brand">
@@ -262,7 +261,6 @@
     </div>
 </nav>
 
-<!-- Hero -->
 <section class="hero" id="home">
     <div class="hero-content">
         <div class="hero-badge">Updated for FY 2026-27 &bull; Income Tax Act 2025 (as amended by Finance Bill/Act, 2026)</div>
@@ -275,7 +273,6 @@
     </div>
 </section>
 
-<!-- Stats -->
 <div class="stats-bar">
     <div class="stats-inner">
         <div class="stat-item"><div class="stat-num">24</div><div class="stat-label">Sections Covered</div></div>
@@ -284,7 +281,6 @@
     </div>
 </div>
 
-<!-- TDS / TCS Table Section -->
 <section class="section" id="tds-table">
     <div class="section-inner">
         <div class="section-header">
@@ -299,16 +295,6 @@
                 <option value="">All Types</option>
                 <option value="TDS">TDS Only</option>
                 <option value="TCS">TCS Only</option>
-            </select>
-            <select id="payerFilter">
-                <option value="">All Payers / Collectors</option>
-                <option value="specified">Specified Person</option>
-                <option value="any person">Any Person</option>
-                <option value="individual">Individual / HUF</option>
-                <option value="designated">Designated Person</option>
-                <option value="firm">Firm</option>
-                <option value="seller">Seller</option>
-                <option value="buyer">Buyer</option>
             </select>
         </div>
 
@@ -336,7 +322,6 @@
     </div>
 </section>
 
-<!-- Calculator Section -->
 <section class="section" id="calculator">
     <div class="section-inner">
         <div class="section-header">
@@ -406,7 +391,6 @@
     </div>
 </section>
 
-<!-- Disclaimer -->
 <section class="section" id="disclaimer">
     <div class="section-inner">
         <div class="section-header">
@@ -418,12 +402,11 @@
             <p>This website is for <strong>informational purposes only</strong> and does not constitute professional advice. The information presented here is based on the Income Tax Act 2025 as published in the Gazette of India and incorporates amendments proposed by the Finance Bill/Act, 2026.</p>
             <p style="margin-top:1rem;">Users are advised to <strong>consult their tax consultant or professional advisor</strong> before making any decisions based on the information provided herein. The creators of this website shall not be liable for any loss or damage arising from the use of information on this website.</p>
             <p style="margin-top:1rem;">While every effort has been made to ensure accuracy, the legislative text of the Income Tax Act 2025 and relevant rules and notifications issued by the CBDT shall prevail in case of any discrepancy.</p>
-            <p style="margin-top:1.5rem; padding-top:1rem; border-top: 1px solid var(--grey);"><strong>Developed by CA Vivek Jain, FCA</strong><br>Email: <a href="mailto:vivek.j.ca@gmail.com" style="color:var(--indigo-light);">vivek.j.ca@gmail.com</a></p>
+            <p style="margin-top:1.5rem; padding-top:1rem; border-top: 1px solid var(--grey);"><strong>Developed by:</strong><br>1. CA Vivek Jain, FCA — Email: <a href="mailto:vivek.j.ca@gmail.com" style="color:var(--indigo-light);">vivek.j.ca@gmail.com</a><br>2. CA Anil Kumar Agarwala, FCA — Email: <a href="mailto:akagarwala@gmail.com" style="color:var(--indigo-light);">akagarwala@gmail.com</a></p>
         </div>
     </div>
 </section>
 
-<!-- Footer -->
 <footer class="footer">
     <div class="footer-inner">
         <div>
@@ -878,23 +861,19 @@ function toggleDetail(id) {
 // ── FILTERS ──
 const searchInput = document.getElementById('searchInput');
 const typeFilter = document.getElementById('typeFilter');
-const payerFilter = document.getElementById('payerFilter');
 
 function applyFilters() {
     const q = searchInput.value.toLowerCase();
     const type = typeFilter.value;
-    const payer = payerFilter.value.toLowerCase();
     const filtered = allData.filter(item => {
         const matchSearch = !q || item.description.toLowerCase().includes(q) || item.newSection.toLowerCase().includes(q) || item.oldSection.toLowerCase().includes(q) || item.payerShort.toLowerCase().includes(q) || item.receiverCategory.toLowerCase().includes(q) || item.descDetail.toLowerCase().includes(q);
         const matchType = !type || item.type === type;
-        const matchPayer = !payer || item.payerCategory.toLowerCase().includes(payer) || item.payerShort.toLowerCase().includes(payer);
-        return matchSearch && matchType && matchPayer;
+        return matchSearch && matchType;
     });
     renderTable(filtered);
 }
 searchInput.addEventListener('input', applyFilters);
 typeFilter.addEventListener('change', applyFilters);
-payerFilter.addEventListener('change', applyFilters);
 
 // ── CALCULATOR ──
 const calcDesc = document.getElementById('calcDescription');
@@ -939,7 +918,12 @@ function calculateTDS() {
     if (!selectedItem) return;
     const amount = parseFloat(document.getElementById('calcAmount').value) || 0;
     const cumulative = parseFloat(document.getElementById('calcCumulative').value) || 0;
-    if (amount <= 0) { document.getElementById('calcResult').style.display = 'none'; document.getElementById('calcNote').style.display = 'none'; return; }
+    
+    if (amount <= 0) { 
+        document.getElementById('calcResult').style.display = 'none'; 
+        document.getElementById('calcNote').style.display = 'none'; 
+        return; 
+    }
 
     const rate = selectedItem.rateValue;
     let tax = 0, note = '';
@@ -949,66 +933,103 @@ function calculateTDS() {
     const label = selectedItem.type === 'TCS' ? 'TCS' : 'TDS';
     const fmt = n => '₹ ' + n.toLocaleString('en-IN');
 
+    // Total of previous payments + current payment
+    const total = cumulative + amount;
+    let taxableAmount = 0;
+
+    // Strict boundary checks (> not >=) and mathematically correct base calculation
     if (threshType === 'none') {
-        tax = amount * rate;
+        taxableAmount = amount;
+        tax = taxableAmount * rate;
         note = `No threshold applies. ${label} on the full amount.`;
-    } else if (threshType === 'monthly') {
+    } 
+    else if (threshType === 'monthly') {
         if (amount > threshVal) {
-            tax = amount * rate;
+            taxableAmount = amount;
+            tax = taxableAmount * rate;
             note = `Monthly amount (${fmt(amount)}) exceeds threshold of ${fmt(threshVal)}/month. ${label} applicable on full amount.`;
         } else {
             note = `Monthly amount (${fmt(amount)}) does not exceed ${fmt(threshVal)}/month. No ${label} applicable.`;
         }
-    } else if (threshType === 'single') {
-        if (amount >= threshVal) {
-            tax = amount * rate;
-            note = `Payment (${fmt(amount)}) meets/exceeds threshold of ${fmt(threshVal)}. ${label} applicable.`;
+    } 
+    else if (threshType === 'single') {
+        if (amount > threshVal) {
+            taxableAmount = amount;
+            tax = taxableAmount * rate;
+            note = `Payment (${fmt(amount)}) exceeds threshold of ${fmt(threshVal)}. ${label} applicable.`;
         } else {
-            note = `Payment (${fmt(amount)}) is below threshold of ${fmt(threshVal)}. No ${label} applicable.`;
+            note = `Payment (${fmt(amount)}) does not exceed threshold of ${fmt(threshVal)}. No ${label} applicable.`;
         }
-    } else if (threshType === 'dual') {
-        const total = cumulative + amount;
-        if (amount >= threshVal) {
-            tax = amount * rate;
-            note = `Single payment (${fmt(amount)}) exceeds single-sum threshold of ${fmt(threshVal)}. ${label} applicable.`;
-        } else if (cumThresh && total >= cumThresh) {
-            tax = amount * rate;
-            note = `Single payment below ${fmt(threshVal)}, but cumulative (${fmt(total)}) exceeds aggregate threshold of ${fmt(cumThresh)}. ${label} applicable.`;
+    } 
+    else if (threshType === 'dual') {
+        if (amount > threshVal) {
+            // Check if this payment ALSO makes aggregate cross for the first time
+            if (cumThresh && cumulative <= cumThresh && total > cumThresh) {
+                taxableAmount = total;
+                note = `Single payment (${fmt(amount)}) exceeds single threshold (${fmt(threshVal)}) AND aggregate crosses ${fmt(cumThresh)} for the first time. ${label} applicable on entire aggregate amount (${fmt(total)}).`;
+            } else {
+                taxableAmount = amount;
+                note = `Single payment (${fmt(amount)}) exceeds single-sum threshold of ${fmt(threshVal)}. ${label} applicable.`;
+            }
+        } else if (cumThresh && total > cumThresh) {
+            if (cumulative <= cumThresh) {
+                taxableAmount = total;
+                note = `Aggregate threshold crossed for the first time. ${label} applicable on entire aggregate amount (${fmt(total)}).`;
+            } else {
+                taxableAmount = amount;
+                note = `Aggregate threshold (${fmt(cumThresh)}) was already crossed previously. ${label} applicable on current payment.`;
+            }
         } else {
-            note = `Single payment below ${fmt(threshVal)} and cumulative (${fmt(total)}) below ${fmt(cumThresh)}. No ${label} applicable.`;
+            note = `Neither single payment (${fmt(amount)}) exceeds ${fmt(threshVal)}, nor cumulative (${fmt(total)}) exceeds ${fmt(cumThresh)}. No ${label} applicable.`;
         }
-    } else if (threshType === 'cumulative') {
-        const total = cumulative + amount;
+        tax = taxableAmount * rate;
+    } 
+    else if (threshType === 'cumulative') {
         if (total > threshVal) {
-            tax = amount * rate;
-            note = `Cumulative (${fmt(total)}) exceeds ${fmt(threshVal)}. ${label} applicable on current payment.`;
+            if (cumulative <= threshVal) {
+                taxableAmount = total;
+                note = `Cumulative threshold (${fmt(threshVal)}) crossed for the first time. ${label} applicable on entire amount (${fmt(total)}).`;
+            } else {
+                taxableAmount = amount;
+                note = `Cumulative threshold (${fmt(threshVal)}) already crossed previously. ${label} on current payment.`;
+            }
+            tax = taxableAmount * rate;
         } else {
-            note = `Cumulative (${fmt(total)}) has not exceeded ${fmt(threshVal)}. No ${label} yet.`;
+            note = `Cumulative (${fmt(total)}) does not exceed ${fmt(threshVal)}. No ${label} applicable.`;
         }
-    } else if (threshType === 'cumulative_excess') {
-        const total = cumulative + amount;
+    } 
+    else if (threshType === 'cumulative_excess') {
         if (total > threshVal) {
             const excessTotal = total - threshVal;
             const alreadyExcess = Math.max(0, cumulative - threshVal);
-            const taxable = excessTotal - alreadyExcess;
-            tax = Math.max(0, taxable) * rate;
-            note = `${label} on amount exceeding ${fmt(threshVal)}. Taxable portion: ${fmt(Math.max(0, taxable))}.`;
+            taxableAmount = excessTotal - alreadyExcess;
+            tax = taxableAmount * rate;
+            note = `${label} on amount strictly exceeding ${fmt(threshVal)}. Taxable portion: ${fmt(taxableAmount)}.`;
         } else {
-            note = `Cumulative (${fmt(total)}) has not exceeded ${fmt(threshVal)}. No ${label} applicable.`;
+            note = `Cumulative (${fmt(total)}) does not exceed ${fmt(threshVal)}. No ${label} applicable.`;
         }
-    } else {
-        if (amount >= threshVal) {
-            tax = amount * rate;
-            note = `Payment exceeds threshold of ${fmt(threshVal)}. ${label} applicable.`;
-        } else if (cumulative > 0 && (cumulative + amount) >= threshVal) {
-            tax = amount * rate;
-            note = `Cumulative (${fmt(cumulative + amount)}) exceeds threshold. ${label} applicable.`;
+    } 
+    else {
+        // single_or_aggregate fallback (guarantees strictly exceeds logic)
+        if (total > threshVal) {
+            if (cumulative <= threshVal && cumulative > 0) {
+                taxableAmount = total;
+                note = `Aggregate threshold (${fmt(threshVal)}) crossed for the first time. ${label} applicable on entire amount (${fmt(total)}).`;
+            } else if (cumulative === 0) {
+                taxableAmount = amount;
+                note = `Payment (${fmt(amount)}) exceeds threshold of ${fmt(threshVal)}. ${label} applicable.`;
+            } else {
+                taxableAmount = amount;
+                note = `Threshold (${fmt(threshVal)}) already crossed in previous payments. ${label} applicable on current payment.`;
+            }
+            tax = taxableAmount * rate;
         } else {
-            note = `Payment below threshold of ${fmt(threshVal)}. No ${label} applicable.`;
+            note = `Total payment (${fmt(total)}) does not exceed threshold of ${fmt(threshVal)}. No ${label} applicable.`;
         }
     }
 
     tax = Math.round(tax * 100) / 100;
+    
     document.getElementById('calcResult').style.display = 'block';
     document.getElementById('resultAmount').textContent = fmt(tax);
     document.getElementById('resultInfo').textContent = tax > 0 ? `Under Section ${selectedItem.newSection} of the Income Tax Act 2025` : `No ${label} deduction/collection required based on inputs`;
